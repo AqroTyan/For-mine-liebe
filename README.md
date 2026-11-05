@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Couple Sync Widget</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Подключение Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
@@ -19,7 +16,7 @@
 
         <!-- Поле ввода кода пары -->
         <div class="flex gap-2">
-            <input id="roomInput" type="text" placeholder="Код пары (например: love123)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-center font-mono focus:outline-none focus:border-indigo-500 text-white">
+            <input id="roomInput" type="text" placeholder="Например: love123" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-center font-mono focus:outline-none focus:border-indigo-500 text-white">
             <button onclick="connectRoom()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl text-sm font-semibold transition text-white">Войти</button>
         </div>
 
@@ -62,19 +59,23 @@
         </div>
     </div>
 
-    <script>
-        // === ВСТАВЬ СВОИ ДАННЫЕ ИЗ FIREBASE СЮДА ===
+    <!-- Подключаем современный Firebase через модули -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
         const firebaseConfig = {
-            apiKey: "ТВОЙ_API_KEY",
-            authDomain: "ТВОЙ_PROJECT.firebaseapp.com",
-            databaseURL: "https://ТВОЙ_PROJECT-default-rtdb.firebaseio.com",
-            projectId: "ТВОЙ_PROJECT",
-            storageBucket: "ТВОЙ_PROJECT.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:xxxx"
+            apiKey: "AIzaSyAQL-Mk4Ppvuid0oxvaeTg50lTzCK8E1VA",
+            authDomain: "for-love-12b31.firebaseapp.com",
+            databaseURL: "https://for-love-12b31-default-rtdb.firebaseio.com",
+            projectId: "for-love-12b31",
+            storageBucket: "for-love-12b31.firebasestorage.app",
+            messagingSenderId: "184511953697",
+            appId: "1:184511953697:web:1855880ee7b82f94985c60"
         };
-    firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
         let roomId = "";
         let myRole = ""; 
@@ -83,15 +84,17 @@
             Notification.requestPermission();
         }
 
-        function connectRoom() {
+        // Делаем функции глобальными, чтобы кнопка и ползунки их видели
+        window.connectRoom = function() {
             const input = document.getElementById("roomInput").value.trim();
             if (!input) return alert("Введите код пары!");
             
             roomId = input;
             document.getElementById("appBody").classList.remove("hidden");
 
-            const roomRef = db.ref("rooms/" + roomId);
-            roomRef.once("value", (snapshot) => {
+            const roomRef = ref(db, "rooms/" + roomId);
+            
+            get(roomRef).then((snapshot) => {
                 if (!snapshot.hasChild("user1")) {
                     myRole = "user1";
                 } else {
@@ -99,30 +102,32 @@
                 }
 
                 const partnerRole = myRole === "user1" ? "user2" : "user1";
-                db.ref(rooms/${roomId}/${partnerRole}).on("value", (snap) => {
+                const partnerRef = ref(db, `rooms/${roomId}/${partnerRole}`);
+                
+                onValue(partnerRef, (snap) => {
                     const data = snap.val();
                     if (data) {
                         renderPartnerData(data);
                     }
                 });
             });
-        }
+        };
 
-        function updateMyStatus() {
+        window.updateMyStatus = function() {
             if (!roomId || !myRole) return;
 
             const depression = parseInt(document.getElementById("myDepression").value);
             const chat = parseInt(document.getElementById("myChat").value);
 
-            document.getElementById("myDepressionValinnerText" || "myDepressionVal").innerText = depression + "%";
+            document.getElementById("myDepressionVal").innerText = depression + "%";
             document.getElementById("myChatVal").innerText = chat + "%";
 
-            db.ref(rooms/${roomId}/${myRole}).set({
+            set(ref(db, `rooms/${roomId}/${myRole}`), {
                 depression: depression,
                 chat: chat,
                 updatedAt: Date.now()
             });
-        }
+        };
 
         let alertSentDepression = false;
         let alertSentChat = false;
@@ -134,11 +139,9 @@
             depEl.innerText = (data.depression ?? 0) + "%";
             chatEl.innerText = (data.chat ?? 0) + "%";
 
-            // Окраска при критических значениях (>= 85%)
-            depEl.className = font-bold text-sm px-3 py-1 rounded-lg ${data.depression >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'};
-            chatEl.className = font-bold text-sm px-3 py-1 rounded-lg ${data.chat >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'};
+            depEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${data.depression >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'}`;
+            chatEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${data.chat >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'}`;
 
-            // Уведомления при достижении пика
             if (data.depression >= 85 && !alertSentDepression) {
                 sendNotification("⚠️ Внимание!", "У вашей девушки критический уровень подавленности.");
                 alertSentDepression = true;
