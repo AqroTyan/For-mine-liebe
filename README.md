@@ -8,6 +8,18 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
+    <!-- Всплывающий баннер уведомления внутри сайта -->
+    <div id="toast" class="fixed top-4 left-4 right-4 max-w-sm mx-auto bg-rose-600 text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform -translate-y-32 opacity-0 z-50 flex items-center justify-between border border-white/20">
+        <div class="flex items-center gap-3">
+            <span id="toastIcon" class="text-2xl">⚠️</span>
+            <div>
+                <h4 id="toastTitle" class="font-bold text-sm">Внимание!</h4>
+                <p id="toastBody" class="text-xs text-rose-100">Критическое состояние партнера!</p>
+            </div>
+        </div>
+        <button onclick="hideToast()" class="text-white/80 hover:text-white text-sm font-bold px-2 py-1">✕</button>
+    </div>
+
     <div class="w-full max-w-sm bg-slate-800/90 backdrop-blur border border-slate-700 p-6 rounded-3xl shadow-2xl space-y-6">
         <div class="text-center">
             <h1 class="text-2xl font-bold tracking-tight text-white">Couple Sync 🤍</h1>
@@ -25,11 +37,6 @@
         </div>
 
         <div id="appBody" class="space-y-6 hidden">
-            <!-- Кнопка включения уведомлений -->
-            <button onclick="requestNotificationPermission()" id="notifBtn" class="w-full bg-slate-700/60 hover:bg-slate-700 py-2 px-3 rounded-xl text-xs font-medium text-indigo-300 border border-indigo-500/30 transition flex items-center justify-center gap-2">
-                🔔 Включить уведомления о критических состояниях
-            </button>
-
             <!-- Мой статус -->
             <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50 space-y-4">
                 <h2 id="myRoleTitle" class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Моё состояние</h2>
@@ -70,7 +77,7 @@
         </div>
     </div>
 
-    <!-- Подключаем современный Firebase через модули -->
+    <!-- Подключаем Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -90,29 +97,6 @@
 
         let roomId = localStorage.getItem("couple_room") || "";
         let myRole = localStorage.getItem("couple_role") || ""; 
-
-        // Проверяем статус разрешения уведомлений при загрузке
-        window.addEventListener("DOMContentLoaded", () => {
-            if (Notification.permission === "granted") {
-                const btn = document.getElementById("notifBtn");
-                if (btn) btn.innerText = "🔔 Уведомления включены";
-            }
-        });
-
-        window.requestNotificationPermission = function() {
-            if (!("Notification" in window)) {
-                alert("Ваш браузер не поддерживает уведомления");
-                return;
-            }
-            Notification.requestPermission().then((permission) => {
-                if (permission === "granted") {
-                    document.getElementById("notifBtn").innerText = "🔔 Уведомления включены";
-                    new Notification("Couple Sync 🤍", { body: "Уведомления успешно активированы!" });
-                } else {
-                    alert("Вы заблокировали уведомления. Разрешите их в настройках браузера.");
-                }
-            });
-        };
 
         if (roomId && myRole) {
             startApp();
@@ -141,10 +125,13 @@
             const partnerRole = myRole === "user1" ? "user2" : "user1";
             const partnerRef = ref(db, `rooms/${roomId}/${partnerRole}`);
             
+            let isFirstLoad = true;
+
             onValue(partnerRef, (snap) => {
                 const data = snap.val();
                 if (data) {
-                    renderPartnerData(data);
+                    renderPartnerData(data, isFirstLoad);
+                    isFirstLoad = false;
                 }
             });
         }
@@ -171,10 +158,10 @@
             location.reload();
         };
 
-        let alertSentDepression = false;
-        let alertSentChat = false;
+        let lastDep = 0;
+        let lastChat = 0;
 
-        function renderPartnerData(data) {
+        function renderPartnerData(data, isFirstLoad) {
             const depEl = document.getElementById("partnerDepression");
             const chatEl = document.getElementById("partnerChat");
 
@@ -187,35 +174,40 @@
             depEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${depVal >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'}`;
             chatEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${chatVal >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'}`;
 
-            // 1. Критический уровень подавленности (>= 85%)
-            if (depVal >= 85 && !alertSentDepression) {
-                sendNotification("⚠️ Критический уровень подавленности!", "Второй половинке сейчас очень тяжело. Поддержи её!");
-                alertSentDepression = true;
-            } else if (depVal < 85) {
-                alertSentDepression = false;
-            }
-
-            // 2. Высокое желание пообщаться (>= 85%)
-            if (chatVal >= 85 && !alertSentChat) {
-                sendNotification("💬 Сильное желание пообщаться!", "Вторая половинка очень хочет с тобой поговорить прямо сейчас!");
-                alertSentChat = true;
-            } else if (chatVal < 85) {
-                alertSentChat = false;
-            }
-        }
-
-        function sendNotification(title, body) {
-            if (Notification.permission === "granted") {
-                try {
-                    new Notification(title, { 
-                        body: body, 
-                        icon: "https://cdn-icons-png.flatic0n.com/512/833/833472.png" 
-                    });
-                } catch (e) {
-                    console.log("Ошибка отправки уведомления:", e);
+            // Проверка перехода порога 85% (только в реальном времени, а не при входе)
+            if (!isFirstLoad) {
+                if (depVal >= 85 && lastDep < 85) {
+                    showToast("⚠️", "Критическая подавленность!", "Партнеру очень тяжело, поддержи его!", "bg-rose-600");
+                }
+                if (chatVal >= 85 && lastChat < 85) {
+                    showToast("💬 Хочет пообщаться!", "Партнёр очень хочет поговорить с тобой!", "bg-emerald-600");
                 }
             }
+
+            lastDep = depVal;
+            lastChat = chatVal;
         }
+
+        window.showToast = function(icon, title, body, bgClass) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toastIcon").innerText = icon;
+            document.getElementById("toastTitle").innerText = title;
+            document.getElementById("toastBody").innerText = body;
+
+            toast.className = `fixed top-4 left-4 right-4 max-w-sm mx-auto ${bgClass} text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform translate-y-0 opacity-100 z-50 flex items-center justify-between border border-white/20`;
+
+            // Вибрация телефона при получении сигнала (если поддерживается устройством)
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+
+            setTimeout(hideToast, 6000);
+        };
+
+        window.hideToast = function() {
+            const toast = document.getElementById("toast");
+            toast.classList.add("-translate-y-32", "opacity-0");
+        };
     </script>
 </body>
 </html>
