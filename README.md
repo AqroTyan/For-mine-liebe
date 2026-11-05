@@ -9,15 +9,15 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
     <!-- Всплывающий баннер уведомления внутри сайта -->
-    <div id="toast" class="fixed top-4 left-4 right-4 max-w-sm mx-auto bg-rose-600 text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform -translate-y-32 opacity-0 z-50 flex items-center justify-between border border-white/20">
+    <div id="toast" class="fixed top-4 left-4 right-4 max-w-sm mx-auto text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform -translate-y-32 opacity-0 z-50 flex items-center justify-between border border-white/20">
         <div class="flex items-center gap-3">
             <span id="toastIcon" class="text-2xl">⚠️</span>
             <div>
                 <h4 id="toastTitle" class="font-bold text-sm">Внимание!</h4>
-                <p id="toastBody" class="text-xs text-rose-100">Критическое состояние партнера!</p>
+                <p id="toastBody" class="text-xs text-slate-100">Критическое состояние партнера!</p>
             </div>
         </div>
-        <button onclick="hideToast()" class="text-white/80 hover:text-white text-sm font-bold px-2 py-1">✕</button>
+        <button onclick="hideToast()" class="bg-black/20 hover:bg-black/40 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center transition">✕</button>
     </div>
 
     <div class="w-full max-w-sm bg-slate-800/90 backdrop-blur border border-slate-700 p-6 rounded-3xl shadow-2xl space-y-6">
@@ -174,13 +174,12 @@
             depEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${depVal >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'}`;
             chatEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${chatVal >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'}`;
 
-            // Проверка перехода порога 85% (только в реальном времени, а не при входе)
             if (!isFirstLoad) {
                 if (depVal >= 85 && lastDep < 85) {
                     showToast("⚠️", "Критическая подавленность!", "Партнеру очень тяжело, поддержи его!", "bg-rose-600");
                 }
                 if (chatVal >= 85 && lastChat < 85) {
-                    showToast("💬 Хочет пообщаться!", "Партнёр очень хочет поговорить с тобой!", "bg-emerald-600");
+                    showToast("💬", "Сильное желание пообщаться!", "Партнёр очень хочет поговорить с тобой!", "bg-emerald-600");
                 }
             }
 
@@ -190,23 +189,26 @@
 
         window.showToast = function(icon, title, body, bgClass) {
             const toast = document.getElementById("toast");
+            
+            // Убираем старые фоновые классы и ставим переданный цвет (rose или emerald)
+            toast.className = `fixed top-4 left-4 right-4 max-w-sm mx-auto ${bgClass} text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform translate-y-0 opacity-100 z-50 flex items-center justify-between border border-white/20`;
+
             document.getElementById("toastIcon").innerText = icon;
             document.getElementById("toastTitle").innerText = title;
             document.getElementById("toastBody").innerText = body;
 
-            toast.className = `fixed top-4 left-4 right-4 max-w-sm mx-auto ${bgClass} text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform translate-y-0 opacity-100 z-50 flex items-center justify-between border border-white/20`;
-
-            // Вибрация телефона при получении сигнала (если поддерживается устройством)
             if (navigator.vibrate) {
                 navigator.vibrate([200, 100, 200]);
             }
 
-            setTimeout(hideToast, 6000);
+            // Автоскрытие через 6 секунд
+            window.toastTimer = setTimeout(hideToast, 6000);
         };
 
         window.hideToast = function() {
             const toast = document.getElementById("toast");
             toast.classList.add("-translate-y-32", "opacity-0");
+            if (window.toastTimer) clearTimeout(window.toastTimer);
         };
     </script>
 </body>
