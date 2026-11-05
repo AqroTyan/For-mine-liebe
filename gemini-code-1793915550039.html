@@ -25,6 +25,11 @@
         </div>
 
         <div id="appBody" class="space-y-6 hidden">
+            <!-- Кнопка включения уведомлений -->
+            <button onclick="requestNotificationPermission()" id="notifBtn" class="w-full bg-slate-700/60 hover:bg-slate-700 py-2 px-3 rounded-xl text-xs font-medium text-indigo-300 border border-indigo-500/30 transition flex items-center justify-center gap-2">
+                🔔 Включить уведомления о критических состояниях
+            </button>
+
             <!-- Мой статус -->
             <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50 space-y-4">
                 <h2 id="myRoleTitle" class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Моё состояние</h2>
@@ -61,7 +66,7 @@
                 </div>
             </div>
 
-            <button onclick="logout()" class="w-full bg-slate-700 hover:bg-slate-600 py-2 rounded-xl text-xs font-medium text-slate-300 transition">Сменить код / роль</button>
+            <button onclick="logout()" class="w-full bg-slate-700/40 hover:bg-slate-700 py-2 rounded-xl text-xs font-medium text-slate-400 transition">Сменить код / роль</button>
         </div>
     </div>
 
@@ -86,11 +91,29 @@
         let roomId = localStorage.getItem("couple_room") || "";
         let myRole = localStorage.getItem("couple_role") || ""; 
 
-        if ("Notification" in window) {
-            Notification.requestPermission();
-        }
+        // Проверяем статус разрешения уведомлений при загрузке
+        window.addEventListener("DOMContentLoaded", () => {
+            if (Notification.permission === "granted") {
+                const btn = document.getElementById("notifBtn");
+                if (btn) btn.innerText = "🔔 Уведомления включены";
+            }
+        });
 
-        // Автоматический вход, если данные сохранились в памяти телефона
+        window.requestNotificationPermission = function() {
+            if (!("Notification" in window)) {
+                alert("Ваш браузер не поддерживает уведомления");
+                return;
+            }
+            Notification.requestPermission().then((permission) => {
+                if (permission === "granted") {
+                    document.getElementById("notifBtn").innerText = "🔔 Уведомления включены";
+                    new Notification("Couple Sync 🤍", { body: "Уведомления успешно активированы!" });
+                } else {
+                    alert("Вы заблокировали уведомления. Разрешите их в настройках браузера.");
+                }
+            });
+        };
+
         if (roomId && myRole) {
             startApp();
         }
@@ -102,7 +125,6 @@
             roomId = input;
             myRole = role;
 
-            // Сохраняем в память телефона, чтобы при перезагрузке не сбивалось
             localStorage.setItem("couple_room", roomId);
             localStorage.setItem("couple_role", myRole);
 
@@ -156,30 +178,42 @@
             const depEl = document.getElementById("partnerDepression");
             const chatEl = document.getElementById("partnerChat");
 
-            depEl.innerText = (data.depression ?? 0) + "%";
-            chatEl.innerText = (data.chat ?? 0) + "%";
+            const depVal = data.depression ?? 0;
+            const chatVal = data.chat ?? 0;
 
-            depEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${data.depression >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'}`;
-            chatEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${data.chat >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'}`;
+            depEl.innerText = depVal + "%";
+            chatEl.innerText = chatVal + "%";
 
-            if (data.depression >= 85 && !alertSentDepression) {
-                sendNotification("⚠️ Внимание!", "У вашей второй половинки критический уровень подавленности.");
+            depEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${depVal >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'}`;
+            chatEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${chatVal >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'}`;
+
+            // 1. Критический уровень подавленности (>= 85%)
+            if (depVal >= 85 && !alertSentDepression) {
+                sendNotification("⚠️ Критический уровень подавленности!", "Второй половинке сейчас очень тяжело. Поддержи её!");
                 alertSentDepression = true;
-            } else if (data.depression < 85) {
+            } else if (depVal < 85) {
                 alertSentDepression = false;
             }
 
-            if (data.chat >= 85 && !alertSentChat) {
-                sendNotification("💬 Высокое желание пообщаться!", "Ваша вторая половинка очень хочет с вами поговорить.");
+            // 2. Высокое желание пообщаться (>= 85%)
+            if (chatVal >= 85 && !alertSentChat) {
+                sendNotification("💬 Сильное желание пообщаться!", "Вторая половинка очень хочет с тобой поговорить прямо сейчас!");
                 alertSentChat = true;
-            } else if (data.chat < 85) {
+            } else if (chatVal < 85) {
                 alertSentChat = false;
             }
         }
 
         function sendNotification(title, body) {
             if (Notification.permission === "granted") {
-                new Notification(title, { body: body });
+                try {
+                    new Notification(title, { 
+                        body: body, 
+                        icon: "https://cdn-icons-png.flatic0n.com/512/833/833472.png" 
+                    });
+                } catch (e) {
+                    console.log("Ошибка отправки уведомления:", e);
+                }
             }
         }
     </script>
