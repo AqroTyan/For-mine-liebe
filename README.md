@@ -73,8 +73,7 @@
             messagingSenderId: "123456789",
             appId: "1:123456789:web:xxxx"
         };
-
-        firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let roomId = "";
@@ -100,7 +99,7 @@
                 }
 
                 const partnerRole = myRole === "user1" ? "user2" : "user1";
-                db.ref(`rooms/${roomId}/${partnerRole}`).on("value", (snap) => {
+                db.ref(rooms/${roomId}/${partnerRole}).on("value", (snap) => {
                     const data = snap.val();
                     if (data) {
                         renderPartnerData(data);
@@ -118,4 +117,48 @@
             document.getElementById("myDepressionValinnerText" || "myDepressionVal").innerText = depression + "%";
             document.getElementById("myChatVal").innerText = chat + "%";
 
-            db
+            db.ref(rooms/${roomId}/${myRole}).set({
+                depression: depression,
+                chat: chat,
+                updatedAt: Date.now()
+            });
+        }
+
+        let alertSentDepression = false;
+        let alertSentChat = false;
+
+        function renderPartnerData(data) {
+            const depEl = document.getElementById("partnerDepression");
+            const chatEl = document.getElementById("partnerChat");
+
+            depEl.innerText = (data.depression ?? 0) + "%";
+            chatEl.innerText = (data.chat ?? 0) + "%";
+
+            // Окраска при критических значениях (>= 85%)
+            depEl.className = font-bold text-sm px-3 py-1 rounded-lg ${data.depression >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'};
+            chatEl.className = font-bold text-sm px-3 py-1 rounded-lg ${data.chat >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'};
+
+            // Уведомления при достижении пика
+            if (data.depression >= 85 && !alertSentDepression) {
+                sendNotification("⚠️ Внимание!", "У вашей девушки критический уровень подавленности.");
+                alertSentDepression = true;
+            } else if (data.depression < 85) {
+                alertSentDepression = false;
+            }
+
+            if (data.chat >= 85 && !alertSentChat) {
+                sendNotification("💬 Высокое желание пообщаться!", "Ваша девушка очень хочет с вами поговорить.");
+                alertSentChat = true;
+            } else if (data.chat < 85) {
+                alertSentChat = false;
+            }
+        }
+
+        function sendNotification(title, body) {
+            if (Notification.permission === "granted") {
+                new Notification(title, { body: body });
+            }
+        }
+    </script>
+</body>
+</html>
