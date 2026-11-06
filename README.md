@@ -40,6 +40,11 @@
             <p class="text-xs text-slate-400 mt-1">Твой личный мост взаимопонимания</p>
         </div>
 
+        <!-- Кнопка запроса push-уведомлений -->
+        <button id="pushPromptBtn" onclick="requestPushPermission()" class="w-full bg-indigo-600/20 border border-indigo-500/40 hover:bg-indigo-600/30 text-indigo-300 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2">
+            <span>🔔</span> Включить системные уведомления
+        </button>
+
         <!-- Форма входа / Выбора роли -->
         <div id="loginBox" class="space-y-4">
             <input id="roomInput" type="text" placeholder="Код пары (например: love123)" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-center font-mono focus:outline-none focus:border-indigo-500 text-white transition">
@@ -118,12 +123,29 @@
             startApp();
         }
 
+        // Функция запроса Push-уведомлений через OneSignal по клику
+        window.requestPushPermission = function() {
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(function(OneSignal) {
+                OneSignal.Notifications.requestPermission().then(function(permission) {
+                    const btn = document.getElementById("pushPromptBtn");
+                    if (permission) {
+                        btn.innerHTML = "<span>✅</span> Уведомления включены";
+                        btn.className = "w-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 py-2.5 rounded-xl text-xs font-semibold cursor-default transition flex items-center justify-center gap-2";
+                    } else {
+                        btn.innerHTML = "<span>❌</span> Уведомления заблокированы в браузере";
+                        btn.className = "w-full bg-rose-600/20 border border-rose-500/40 text-rose-300 py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2";
+                    }
+                });
+            });
+        };
+
         window.connectAs = function(role) {
             const input = document.getElementById("roomInput").value.trim();
             if (!input) return alert("Введите код пары!");
             
             roomId = input;
-5            myRole = role;
+            myRole = role;
 
             localStorage.setItem("couple_room", roomId);
             localStorage.setItem("couple_role", myRole);
