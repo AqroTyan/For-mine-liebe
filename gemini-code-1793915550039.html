@@ -3,12 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Couple Sync Widget</title>
+    <title>Couple Sync 🤍</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/833/833472.png">
+    
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "6e5430aa-22dd-4822-8de4-b8077fe2fd2c",
+        });
+      });
+    </script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
 
-    <!-- Всплывающий баннер уведомления внутри сайта -->
+    <!-- Всплывающий баннер уведомления (Toast) -->
     <div id="toast" class="fixed top-4 left-4 right-4 max-w-sm mx-auto text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform -translate-y-32 opacity-0 z-50 flex items-center justify-between border border-white/20">
         <div class="flex items-center gap-3">
             <span id="toastIcon" class="text-2xl">⚠️</span>
@@ -20,64 +32,67 @@
         <button onclick="hideToast()" class="bg-black/20 hover:bg-black/40 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center transition">✕</button>
     </div>
 
-    <div class="w-full max-w-sm bg-slate-800/90 backdrop-blur border border-slate-700 p-6 rounded-3xl shadow-2xl space-y-6">
+    <div class="w-full max-w-sm bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-6">
         <div class="text-center">
-            <h1 class="text-2xl font-bold tracking-tight text-white">Couple Sync 🤍</h1>
-            <p class="text-xs text-slate-400 mt-1">Выберите роль и введите код пары</p>
+            <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
+                Couple Sync <span class="text-rose-500">🤍</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">Твой личный мост взаимопонимания</p>
         </div>
 
-        <!-- Форма входа -->
+        <!-- Форма входа / Выбора роли -->
         <div id="loginBox" class="space-y-4">
-            <input id="roomInput" type="text" placeholder="Код пары (например: love123)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-center font-mono focus:outline-none focus:border-indigo-500 text-white">
+            <input id="roomInput" type="text" placeholder="Код пары (например: love123)" class="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-center font-mono focus:outline-none focus:border-indigo-500 text-white transition">
             
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="connectAs('user1')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-sm font-semibold transition text-white">Я (Парень)</button>
-                <button onclick="connectAs('user2')" class="bg-pink-600 hover:bg-pink-500 py-2.5 rounded-xl text-sm font-semibold transition text-white">Девушка</button>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="connectAs('user1')" class="bg-indigo-600 hover:bg-indigo-500 py-3 rounded-2xl text-sm font-semibold transition text-white shadow-lg shadow-indigo-600/20">Я (Парень)</button>
+                <button onclick="connectAs('user2')" class="bg-pink-600 hover:bg-pink-500 py-3 rounded-2xl text-sm font-semibold transition text-white shadow-lg shadow-pink-600/20">Девушка</button>
             </div>
         </div>
 
+        <!-- Основной интерфейс приложения -->
         <div id="appBody" class="space-y-6 hidden">
             <!-- Мой статус -->
-            <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50 space-y-4">
+            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-4 shadow-inner">
                 <h2 id="myRoleTitle" class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Моё состояние</h2>
                 
-                <div>
-                    <div class="flex justify-between text-sm mb-1">
-                        <span>Подавленность</span>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-medium">
+                        <span class="text-slate-300">Подавленность</span>
                         <span id="myDepressionVal" class="font-bold text-rose-400">0%</span>
                     </div>
-                    <input type="range" id="myDepression" min="0" max="100" value="0" oninput="updateMyStatus()" class="w-full accent-rose-500 cursor-pointer">
+                    <input type="range" id="myDepression" min="0" max="100" value="0" oninput="updateMyStatus()" class="w-full accent-rose-500 cursor-pointer h-2 bg-slate-800 rounded-lg appearance-none">
                 </div>
 
-                <div>
-                    <div class="flex justify-between text-sm mb-1">
-                        <span>Желание пообщаться</span>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-medium">
+                        <span class="text-slate-300">Желание пообщаться</span>
                         <span id="myChatVal" class="font-bold text-emerald-400">0%</span>
                     </div>
-                    <input type="range" id="myChat" min="0" max="100" value="0" oninput="updateMyStatus()" class="w-full accent-emerald-500 cursor-pointer">
+                    <input type="range" id="myChat" min="0" max="100" value="0" oninput="updateMyStatus()" class="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-800 rounded-lg appearance-none">
                 </div>
             </div>
 
             <!-- Статус партнера -->
-            <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50 space-y-3">
+            <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-3 shadow-inner">
                 <h2 id="partnerRoleTitle" class="text-xs font-bold text-pink-400 uppercase tracking-wider">Состояние второй половинки</h2>
                 
-                <div class="flex justify-between items-center bg-slate-800/80 p-3 rounded-xl border border-slate-700/40">
-                    <span class="text-sm">Подавленность:</span>
-                    <span id="partnerDepression" class="font-bold text-sm bg-slate-900 px-3 py-1 rounded-lg text-slate-300">--</span>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800/50">
+                    <span class="text-xs text-slate-300">Подавленность:</span>
+                    <span id="partnerDepression" class="font-bold text-sm bg-slate-950 px-3 py-1 rounded-lg text-slate-300 transition-all">--</span>
                 </div>
 
-                <div class="flex justify-between items-center bg-slate-800/80 p-3 rounded-xl border border-slate-700/40">
-                    <span class="text-sm">Желание пообщаться:</span>
-                    <span id="partnerChat" class="font-bold text-sm bg-slate-900 px-3 py-1 rounded-lg text-slate-300">--</span>
+                <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800/50">
+                    <span class="text-xs text-slate-300">Желание пообщаться:</span>
+                    <span id="partnerChat" class="font-bold text-sm bg-slate-950 px-3 py-1 rounded-lg text-slate-300 transition-all">--</span>
                 </div>
             </div>
 
-            <button onclick="logout()" class="w-full bg-slate-700/40 hover:bg-slate-700 py-2 rounded-xl text-xs font-medium text-slate-400 transition">Сменить код / роль</button>
+            <button onclick="logout()" class="w-full bg-slate-800/50 hover:bg-slate-800 py-2.5 rounded-xl text-xs font-medium text-slate-400 transition border border-slate-700/30">Сменить код / роль</button>
         </div>
     </div>
 
-    <!-- Подключаем Firebase SDK -->
+    <!-- Модули Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -99,6 +114,7 @@
         let myRole = localStorage.getItem("couple_role") || ""; 
 
         if (roomId && myRole) {
+            document.getElementById("roomInput").value = roomId;
             startApp();
         }
 
@@ -107,7 +123,7 @@
             if (!input) return alert("Введите код пары!");
             
             roomId = input;
-            myRole = role;
+5            myRole = role;
 
             localStorage.setItem("couple_room", roomId);
             localStorage.setItem("couple_role", myRole);
@@ -171,8 +187,8 @@
             depEl.innerText = depVal + "%";
             chatEl.innerText = chatVal + "%";
 
-            depEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${depVal >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-900 text-slate-200'}`;
-            chatEl.className = `font-bold text-sm px-3 py-1 rounded-lg ${chatVal >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-900 text-slate-200'}`;
+            depEl.className = `font-bold text-sm px-3 py-1 rounded-lg transition-all ${depVal >= 85 ? 'bg-rose-500/20 text-rose-400 animate-pulse border border-rose-500/50' : 'bg-slate-950 text-slate-300'}`;
+            chatEl.className = `font-bold text-sm px-3 py-1 rounded-lg transition-all ${chatVal >= 85 ? 'bg-emerald-500/20 text-emerald-400 animate-pulse border border-emerald-500/50' : 'bg-slate-950 text-slate-300'}`;
 
             if (!isFirstLoad) {
                 if (depVal >= 85 && lastDep < 85) {
@@ -190,7 +206,6 @@
         window.showToast = function(icon, title, body, bgClass) {
             const toast = document.getElementById("toast");
             
-            // Убираем старые фоновые классы и ставим переданный цвет (rose или emerald)
             toast.className = `fixed top-4 left-4 right-4 max-w-sm mx-auto ${bgClass} text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 transform translate-y-0 opacity-100 z-50 flex items-center justify-between border border-white/20`;
 
             document.getElementById("toastIcon").innerText = icon;
@@ -201,7 +216,6 @@
                 navigator.vibrate([200, 100, 200]);
             }
 
-            // Автоскрытие через 6 секунд
             window.toastTimer = setTimeout(hideToast, 6000);
         };
 
